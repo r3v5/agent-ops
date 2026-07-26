@@ -2,7 +2,7 @@
 
 > **Warning:** OpenShell on OpenShift is experimental. This install path requires a privileged Security Context Constraint (SCC) and runs with TLS disabled on the gateway. Do not use it in production.
 
-Run [OpenCode](https://github.com/anomalyco/opencode) (open-source TypeScript AI coding agent) inside an [OpenShell](https://docs.nvidia.com/openshell/latest) sandbox on OpenShift. The agent queries Jira via MCP, uses Claude Opus via Vertex AI for inference, and emits OpenTelemetry traces to the MLflow instance managed by Red Hat OpenShift AI (RHOAI).
+Run [OpenCode](https://github.com/anomalyco/opencode) (open-source TypeScript AI coding agent) inside an [OpenShell](https://docs.nvidia.com/openshell/latest) sandbox on OpenShift. The agent queries Jira via MCP, uses Claude Opus via Vertex AI for inference, and sends traces to the MLflow instance managed by Red Hat OpenShift AI (RHOAI) via the `@mlflow/opencode` plugin.
 
 This guide covers the full path: deploying PostgreSQL for the OpenShell gateway, installing OpenShell as a Deployment, configuring Vertex AI inference, launching OpenCode with Jira MCP, and progressively unlocking sandbox network policies to demonstrate default-deny isolation. The narrative follows a five-act progression: **from locked down to fully observable**.
 
@@ -23,7 +23,7 @@ This guide covers the full path: deploying PostgreSQL for the OpenShell gateway,
 - An OpenShift cluster running version 4.19 or later is available.
 - You have `cluster-admin` access to the cluster.
 - RHOAI is installed on the cluster. For installation, see the [RHOAI documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed).
-- The MLflow Tracking Server is deployed as part of RHOAI (MLflow 3.6+ for OTLP/HTTP support).
+- The MLflow Tracking Server is deployed as part of RHOAI.
 - A Google Cloud project with Vertex AI API enabled and access to Claude models (Opus, Sonnet).
 - `gcloud` CLI authenticated with Application Default Credentials (`gcloud auth application-default login`).
 - A Jira API token for [redhat.atlassian.net](https://redhat.atlassian.net) (Settings → Security → API token).
@@ -220,7 +220,7 @@ The demo includes:
 
 ## 7. Create the sandbox with OpenCode
 
-Create the sandbox with GCP credentials, Jira credentials, OTEL environment variables, and the OpenCode config file:
+Create the sandbox with GCP credentials, Jira credentials, MLflow environment variables, and the OpenCode config file:
 
 ```bash
 # Run locally — from the opencode-vertex-tracing/ directory
@@ -362,7 +362,7 @@ openshell sandbox exec --name opencode-demo -- node -e \
   'require("@mlflow/opencode"); console.log("Plugin loaded OK")'
 ```
 
-> **Note:** The plugin is installed to `/sandbox/node_modules/` (not `/usr/lib/`) because `/usr` is read-only in the sandbox. Node.js resolves modules from the working directory's `node_modules/` automatically. The bundle includes ~92 packages (~22 MB compressed) including `@opentelemetry/sdk-node` and `@mlflow/core`.
+> **Note:** The plugin is installed to `/sandbox/node_modules/` (not `/usr/lib/`) because `/usr` is read-only in the sandbox. Node.js resolves modules from the working directory's `node_modules/` automatically. The bundle includes ~92 packages (~22 MB compressed) including `@mlflow/core` and its dependencies.
 
 Restart OpenCode. After each conversation turn, traces are automatically sent to MLflow.
 
@@ -427,7 +427,7 @@ kill "$PORT_FORWARD_PID" 2>/dev/null || true
 | Vertex AI `policy_denied` / unable to connect | Network policy missing for Vertex AI | Run `openshell policy update <sandbox> --add-endpoint aiplatform.googleapis.com:443 --add-endpoint oauth2.googleapis.com:443 --binary /usr/lib/node_modules/opencode-ai/bin/.opencode --wait` (step 8) |
 | Jira MCP call blocked / 403 Forbidden | Network policy missing or no `--binary` | Run `openshell policy update <sandbox> --add-endpoint redhat.atlassian.net:443 --binary /sandbox/.uv/python/cpython-3.14.3-linux-x86_64-gnu/bin/python3 --wait` (step 10) |
 | Policy update says "unchanged" but endpoint still blocked | Wrong `--binary` path | OpenCode binary is `/usr/lib/node_modules/opencode-ai/bin/.opencode` (not `/usr/bin/node`). Jira MCP binary is the Python interpreter. |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` empty inside sandbox | Variable not passed | Use `--env OTEL_EXPORTER_OTLP_ENDPOINT=...` on `openshell sandbox create` (step 7) |
+| `MLFLOW_TRACKING_URI` empty inside sandbox | Variable not passed | Use `--env MLFLOW_TRACKING_URI=...` on `openshell sandbox create` (step 7) |
 | No traces in MLflow | Network policy missing for MLflow | Run `openshell policy update <sandbox> --add-endpoint <mlflow-route>:443 --binary /usr/lib/node_modules/opencode-ai/bin/.opencode --wait` (step 11) |
 | `502 Bad Gateway` on MLflow route | Wrong route type | Use a **reencrypt** route, not edge or passthrough — MLflow uses TLS internally (step 5) |
 | `ConnectionResetError` to MLflow | Passthrough route + proxy conflict | Switch to a reencrypt route with `--dest-ca-cert` (step 5) |
