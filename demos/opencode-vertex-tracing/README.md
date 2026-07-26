@@ -8,55 +8,7 @@ This guide covers the full path: deploying PostgreSQL for the OpenShell gateway,
 
 ## Architecture
 
-```
-                          ┌─────────────────────────────────-┐
-                          │  Google Cloud (external)         │
-                          │                                  │
-                          │  aiplatform.googleapis.com       │
-                          │  (Vertex AI — Claude Opus)       │
-                          │                                  │
-                          │  oauth2.googleapis.com           │
-                          │  (ADC token exchange)            │
-                          └──────────────▲──────────────────-┘
-                                         │ egress (policy-controlled)
-┌────────────────────────────────────────┼──────────────────────────────┐
-│  OpenShift Cluster                     │                              │
-│                                        │                              │
-│  ┌─────────────────────────────────────┼───────────────────────────┐  │
-│  │  OpenShell Sandbox                  │                           │  │
-│  │                                     │                           │  │
-│  │   OpenCode ─── @ai-sdk/google-vertex┘                           │  │
-│  │     │                                                           │  │
-│  │     ├── Jira MCP (mcp-atlassian) ──────────────────────────┐    │  │
-│  │     │                                                      │    │  │
-│  │     └── @mlflow/opencode plugin ──────────────────────┐    │    │  │
-│  │          (auto-traces turns, tools, tokens)           │    │    │  │
-│  │                                                       │    │    │  │
-│  └── OpenShell proxy (egress policy enforcement) ────────┼────┼────┘  │
-│         default-deny, per-endpoint + per-binary rules    │    │       │
-│                                                          │    │       │
-│                          egress (policy-controlled)      │    │       │
-│                                    ┌─────────────────────┘    │       │
-│                                    │                          │       │
-│                                    ▼                          │       │
-│  ┌────────────────────────────────────┐                       │       │
-│  │  MLflow Tracking Server            │                       │       │
-│  │  (RHOAI managed)                   │                       │       │
-│  │  ◄── reencrypt Route (ingress)     │                       │       │
-│  │  traces + experiments              │                       │       │
-│  └────────────────────────────────────┘                       │       │
-│                                                               │       │
-│                                         egress ───────────────┘       │
-│                                         (policy-controlled)           │
-│  ┌────────────────────────┐                    │                      │
-│  │  PostgreSQL            │                    │                      │
-│  │  (OpenShell gateway DB)│                    ▼                      │
-│  │  stores provider keys, │         ─────────────────────────┐        │
-│  │  sandbox state         │         │  redhat.atlassian.net  |        │
-│  └────────────────────────┘         │  (Jira Cloud, external)│        │
-│                                     └────────────────────────┘        │
-└───────────────────────────────────────────────────────────────────────┘
-```
+![OpenCode + OpenShell + MLflow on OpenShift Architecture](OpenCode-OpenShell-MLflow-on-OpenShift.png)
 
 **Key integration points:**
 
