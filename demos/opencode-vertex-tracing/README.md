@@ -6,6 +6,11 @@ Run [OpenCode](https://github.com/anomalyco/opencode) (open-source TypeScript AI
 
 This guide covers the full path: deploying PostgreSQL for the OpenShell gateway, installing OpenShell as a Deployment, configuring Vertex AI inference, launching OpenCode with Jira MCP, and progressively unlocking sandbox network policies to demonstrate default-deny isolation. The narrative follows a five-act progression: **from locked down to fully observable**.
 
+## Recordings
+
+- [OpenCode + Vertex AI in OpenShell sandbox with MLflow traces on OpenShift demo at Red Hat AI Agentic Office Hours — 2026/07/27](https://drive.google.com/file/d/1_YjasZwsF7q9LefXuuMWkm5ca6aqs0QK/view) — Full end-to-end demo recording
+- [OpenCode + Vertex AI in OpenShell sandbox with MLflow traces on OpenShift demo at Agentic / AI Eng Tools Demos — 2026/07/27](https://drive.google.com/file/d/1OhcpBMcSPMZzZDjTJ_Gprexv64F7d7ts/view) — Full end-to-end demo recording
+
 ## Architecture
 
 ![OpenCode + OpenShell + MLflow on OpenShift Architecture](OpenCode-OpenShell-MLflow-on-OpenShift.png)
